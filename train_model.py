@@ -1,7 +1,6 @@
 import os
 from nerf.dataset import LlffTrainDataset
 from torchvision.transforms import ToTensor
-
 import pdb
 import functools
 import argparse
