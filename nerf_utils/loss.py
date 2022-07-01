@@ -1,6 +1,6 @@
 import torch
 import numpy as np
-from nerf.math_utils import approximate_cdf
+from nerf_utils.math_utils import approximate_cdf
 import pdb
 
 

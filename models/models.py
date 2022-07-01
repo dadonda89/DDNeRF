@@ -1,13 +1,13 @@
 import torch
 
 from models import base_architectures
-from models.samplers import *
-from nerf.train_utils import run_network
-from nerf import get_embedding_function
-from nerf.nerf_helpers_and_samplers import get_minibatches
-from nerf.volume_rendering_utils import volume_render_radiance_field
-from nerf.math_utils import *
-from nerf.loss import *
+from models.samplers_nad_helpers import *
+from nerf_utils import get_embedding_function
+from nerf_utils.nerf_helpers_and_samplers import get_minibatches
+from nerf_utils.volume_rendering_utils import volume_render_radiance_field
+from nerf_utils.math_utils import *
+from nerf_utils.loss import *
+from nerf_utils import run_network
 
 class GeneralMipNerfModel(torch.nn.Module):
     """

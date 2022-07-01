@@ -2,10 +2,10 @@ import torch
 import numpy as np
 
 
-from datasets.load_llff import load_llff_data
-from datasets.load_blender import load_blender_data
-from datasets.load_tat import load_tat_data
-from datasets.dataset import TrainDataset, ValDataset, TrainTatDataset, ValTatDataset
+from data_utils.load_llff import load_llff_data
+from data_utils.load_blender import load_blender_data
+from data_utils.load_tat import load_tat_data
+from data_utils.dataset import TrainDataset, ValDataset, TrainTatDataset, ValTatDataset
 
 
 def get_datasets(cfg):

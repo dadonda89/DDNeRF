@@ -1,4 +1,4 @@
-from nerf.math_utils import *
+from nerf_utils.math_utils import *
 import numpy as np
 from typing import Optional
 

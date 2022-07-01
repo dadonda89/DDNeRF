@@ -1,7 +1,7 @@
 from torch.utils.tensorboard import SummaryWriter
 import torch
 import numpy as np
-from utils.visualization import *
+from validation_utils.visualization import *
 
 class Documenter():
     def __init__(self, logdir):

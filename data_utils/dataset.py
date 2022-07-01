@@ -1,7 +1,7 @@
 import torch
 import numpy as np
 
-from nerf.nerf_helpers_and_samplers import get_ray_bundle
+from nerf_utils.nerf_helpers_and_samplers import get_ray_bundle
 from data_utils.load_tat import get_rays_single_image
 from data_utils.dataset_helpers import ndc_mipnerf_rays
 from data_utils.validation import get_rays_and_target_for_depth_dist

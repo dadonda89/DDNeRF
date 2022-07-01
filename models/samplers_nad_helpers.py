@@ -1,10 +1,7 @@
-from nerf.math_utils import *
-import numpy as np
-from typing import Optional
+from nerf_utils.math_utils import *
+from nerf_utils.nerf_helpers_and_samplers import get_minibatches
 from copy import deepcopy
 import torch
-import pdb
-# import torchsearchsorted
 
 def get_combined_samples(cfg, near, far, mode):
 
@@ -201,30 +198,18 @@ def sample_pdf_with_mu_sigma(bins, weights, mus, sigmas, part_inside_bins, left_
         z = (((u - cdf_g0)/(cdf_g1-cdf_g0))*part_inside_bins + left_tail)
         z = torch.minimum(z, torch.tensor(0.999))
 
-        if z.sum()!=z.sum():
-            pdb.set_trace()
-
         new_mus = torch.gather(mus, index=bins_ind.type(torch.int64), dim=-1)
         new_sigmas = torch.gather(sigmas, index=bins_ind.type(torch.int64), dim=-1)
 
     z = approximate_inverse_cdf(z)
 
-    #if z.sum() != z.sum():
-    #    pdb.set_trace()
-
     t = torch.clip(z*new_sigmas+new_mus, 0, 0.99999)
 
     samples = bins_g0 + t * (bins_g1 - bins_g0)
-
-    #if samples.sum() != samples.sum():
-    #    pdb.set_trace()
 
     samples[:, -1] = cfg.dataset.far
     samples[:, 0] = cfg.dataset.near
 
     samples = torch.sort(samples, dim=1)[0]
-
-    #if samples.sum() != samples.sum():
-    #    pdb.set_trace()
 
     return torch.nn.Parameter(samples)
