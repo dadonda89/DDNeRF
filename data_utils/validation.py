@@ -1,5 +1,5 @@
 import torch
-from nerf_utils.nerf_helpers_and_samplers import get_ray_bundle
+from general_utils.nerf_helpers import get_ray_bundle
 from data_utils.dataset_helpers import ndc_mipnerf_rays
 from data_utils.load_tat import get_rays_single_image
 

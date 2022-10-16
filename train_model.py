@@ -1,6 +1,4 @@
 import os
-from collections import defaultdict
-import pickle as pkl
 from data_utils.dataset_helpers import switch_t_ndc_to_regular
 from data_utils.data_utils import get_datasets
 from models import models
@@ -12,9 +10,10 @@ import numpy as np
 import torch
 import yaml
 from tqdm import tqdm, trange
-from nerf_utils import CfgNode, mse2psnr, learning_rate_decay
-from validation_utils.visualization import *
-import imageio
+
+from general_utils.cfgnode import CfgNode
+from general_utils.nerf_helpers import learning_rate_decay, mse2psnr
+
 
 
 def main():
@@ -44,7 +43,7 @@ def main():
 
     # Write out config parameters.
     with open(os.path.join(logdir, "config.yml"), "w") as f:
-        f.write(cfg.dump())  # cfg, f, default_flow_style=False)
+        f.write(cfg.dump())  #
 
     # Seed experiment for repeatability
     seed = cfg.experiment.randomseed
@@ -66,11 +65,9 @@ def main():
         da_origins, da_directions, da_rad, da_depth, da_rgb = val_dataset.get_depth_analysis_rays(device)
 
 
-
     # load model
     model = getattr(models, cfg.models.type)(cfg)
     model.to(device)
-
 
     # By default, start at iteration 0 (unless a checkpoint is specified).
     start_iter = 0
@@ -80,7 +77,7 @@ def main():
         checkpoint = torch.load(configargs.load_checkpoint)
         model.load_weights_from_checkpoint(checkpoint)
         start_iter = checkpoint["iter"] + 1
-        val_dataset.current_idx = (checkpoint["iter"]//cfg.experiment.validate_every)%(val_dataset.images.shape[0])
+        val_dataset.current_idx = (checkpoint["iter"]//cfg.experiment.validate_every) % (val_dataset.images.shape[0])
 
     # Initialize optimizer.
     optims = []
@@ -91,8 +88,8 @@ def main():
         trainable_parameters, lr=cfg.optimizer.lr
     ))
 
+    # add optimizer for DDNeRF fine model
     if cfg.models.type != "GeneralMipNerfModel":
-
         trainable_parameters = model.fine.parameters()
 
         optims.append(getattr(torch.optim, cfg.optimizer.type)(
@@ -121,9 +118,7 @@ def main():
 
     # init training adjustable parameters
     dsmooth = (cfg.train_params.gaussian_smooth_factor - cfg.train_params.final_smooth)/cfg.train_params.finnish_smooth
-    dls = cfg.train_params.local_smooth_factor/cfg.train_params.finnish_smooth
     initial_gaussian_smooth = cfg.train_params.gaussian_smooth_factor
-    initial_local_smooth = cfg.train_params.local_smooth_factor
 
     ####################
     ### training loop###
@@ -139,10 +134,8 @@ def main():
         # adjust smoothness factors to the iteration number
         if (i < cfg.train_params.finnish_smooth):
             model.cfg.train_params.gaussian_smooth_factor = initial_gaussian_smooth - dsmooth*i
-            model.cfg.train_params.local_smooth_factor = initial_local_smooth - dls*i
         else:
             model.cfg.train_params.gaussian_smooth_factor = cfg.train_params.final_smooth
-            model.cfg.train_params.local_smooth_factor = 0
 
         if i == cfg.train_params.max_pdf_pad_iters:
             model.cfg.train_params.pdf_padding = False
@@ -178,9 +171,11 @@ def main():
         psnr_coarse = mse2psnr(loss_list[0].item())
         psnr_fine = mse2psnr(loss_list[1].item())
 
+
         for optimizer in optims:
             optimizer.step()
             optimizer.zero_grad()
+
 
         if i % cfg.experiment.print_every == 0 or i == cfg.experiment.train_iters - 1:
             tqdm.write(
@@ -194,9 +189,7 @@ def main():
                 + " dp coef: "
                 + str(cfg.train_params.dp_coeficient)
             )
-
         doc.write_train_iter(i, loss, loss_list, psnr_coarse, psnr_fine, lr_new, output, model.cfg)
-
         #######################
         ##### Validation ######
         #######################
@@ -242,41 +235,6 @@ def main():
 
                     doc.write_depth_analysis_rays(i, output_dict, da_depth, model.cfg)
 
-                    if i%1000 == 0 or i == cfg.experiment.train_iters - 1:
-
-                        data_for_movie = os.path.join(logdir, "data_for_movie")
-                        os.makedirs(data_for_movie, exist_ok=True)
-                        movie_dict = {}
-                        movie_dict["rays"] = defaultdict(dict)
-                        for rnd in range(2):
-                            movie_dict["rays"][rnd]["t_vals_for_plot"] = output_dict[rnd]["t_vals_for_plot"].cpu()
-                            movie_dict["rays"][rnd]["uniform_incell_pdf_to_plot"] = output_dict[rnd]["uniform_incell_pdf_to_plot"].cpu()
-
-                        if 'gaussian_incell_pdf_to_plot' in output_dict[1].keys():
-                            movie_dict["rays"][1]['gaussian_incell_pdf_to_plot'] = output_dict[1]['gaussian_incell_pdf_to_plot'].cpu()
-                            movie_dict["rays"][1]['smoothed_gaussian_incell_pdf_to_plot'] = output_dict[1]['smoothed_gaussian_incell_pdf_to_plot'].cpu()
-
-                        movie_dict["gt_depth"] = da_depth
-                        cur_idx = val_dataset.current_idx
-                        movie_dict["images"] = []
-                        movie_dict["psnr"] = []
-                        for im_idx in range(3):
-                            val_dataset.current_idx = im_idx
-                            ray_origins, ray_directions, radii, img_target = val_dataset.get_next_validation_rays(
-                                device)
-                            output = model.run_iter(ray_origins, ray_directions, radii, mode="validation",
-                                                    depth_analysis_validation=False, rgb_target=img_target)
-
-                            movie_dict["images"].append(output[1]["rgb"].cpu().numpy())
-                            psnr = mse2psnr(torch.nn.functional.mse_loss(output[1]["rgb"], img_target))
-                            movie_dict["psnr"].append(psnr)
-                        with open(os.path.join(data_for_movie, f"iter_{i}_data.pkl"), "wb") as f:
-                            pkl.dump(movie_dict, f)
-
-                        val_dataset.current_idx = cur_idx
-
-
-
                 tqdm.write(
                     "Validation loss: "
                     + str(loss.item())
@@ -285,6 +243,7 @@ def main():
                     + " Time: "
                     + str(time.time() - start)
                 )
+
 
         if i > 0 and (i % cfg.experiment.save_every == 0 or i == cfg.experiment.train_iters - 1):
             checkpoint_dict = {
@@ -302,24 +261,6 @@ def main():
                 checkpoint_dict,
                 os.path.join(logdir, "checkpoint.ckpt"),
             )
-
-        if i%20000 == 0:
-            checkpoint_dict = {
-                "iter": i,
-                "model_1_state_dict": model.coarse.state_dict(),
-                "optimizer_1_state_dict": optims[0].state_dict(),
-                "loss": loss,
-                "psnr": psnr_fine
-            }
-            if cfg.models.type != "GeneralMipNerfModel":
-                checkpoint_dict["model_2_state_dict"] = model.fine.state_dict()
-                checkpoint_dict["optimizer_2_state_dict"] = optims[1].state_dict()
-
-            torch.save(
-                checkpoint_dict,
-                os.path.join(logdir, f"checkpoint_{i}.ckpt"),
-            )
-
     print("Done!")
 
 

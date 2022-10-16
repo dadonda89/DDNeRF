@@ -39,13 +39,13 @@ def gen_plot(x, y_list, legend, colors, gt, t_vals, title, tb_mode=False):
     if tb_mode:
         w = 7
         h = 5
-        dpi = 100
-        legend_size = 10
-        font_size = 10
+        dpi = 150
+        legend_size = 6
+        font_size = 8
     else:
         w = 9
         h = 6
-        dpi = 100
+        dpi = 150
         legend_size = 15
         font_size = 15
 
@@ -62,16 +62,16 @@ def gen_plot(x, y_list, legend, colors, gt, t_vals, title, tb_mode=False):
     if gt > 0:
         plt.scatter(x=gt, y=dy_sctr, s=100, c="orange", marker='^', label="points of interest")
 
-    plt.legend(fontsize=12, loc="upper left")
+    plt.legend(fontsize=legend_size, loc="upper left")
     plt.xticks(fontsize=font_size)
     plt.yticks(fontsize=font_size)
     plt.title(title, fontsize=font_size)
     buf = io.BytesIO()
-    plt.savefig(buf, format='png', dpi=400)
+    plt.savefig(buf, format='png', dpi=dpi)
     buf.seek(0)
     return buf
 
-def get_density_distribution_plots(output, j, gt_depth, cfg, i=0, tb_mode=False):
+def get_density_distribution_plots(output, j, gt_depth, cfg, i=0, tb_mode=True):
 
     x = torch.linspace(cfg.dataset.near, cfg.dataset.far, 1000)
     gt = gt_depth[j]

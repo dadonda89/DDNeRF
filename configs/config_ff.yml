@@ -1,13 +1,13 @@
 # Parameters to setup experiment.
 experiment:
   # Unique experiment identifier
-  id: DDNeRF_beta_96_samples
+  id: fern_8_DD_1
   # Experiment logs will be stored at "logdir"/"id"
   logdir: logs/final_code
   # Seed for random number generators (for repeatability).
   randomseed: 42  # 8239
   # Number of training iterations.
-  train_iters: 300001
+  train_iters: 100001
   # Number of training iterations after which to validate.
   validate_every: 2000
   # Number of training iterations after which to checkpoint.
@@ -16,21 +16,15 @@ experiment:
   print_every: 200
 
 train_params:
-  mse: True # JSD if True, KL else
   pdf_padding: True
-  max_pdf_pad_iters: 500000
-  gaussian_smooth_factor: 1.5
-  final_smooth: 1.5
-  local_smooth_factor: 0
+  max_pdf_pad_iters: 20000
+  gaussian_smooth_factor: 1.7
+  final_smooth: 1.1
   max_local_valus: 3
-  finnish_smooth: 200000
-  mu_regularization: 0.02
-  sig_regularization: 0.02
-  reg_loss_type: MSE_v1
-  p: 2
-  musig_activation: regular
-  reg_reduction_factor: 1
-  depth_analysis_rays: False # bool, if true analyze depth estimation
+  finnish_smooth: 100000
+  mu_regularization: 0.08
+  sig_regularization: 0.08
+  depth_analysis_rays: True # bool, if true analyze depth estimation
   loss_coeficients: [1, 1]
   dp_coeficient: 0.1
 
@@ -39,29 +33,28 @@ dataset:
   # Type of the dataset (Blender vs LLFF) uses to decide with load data functions will be in use
   type: LLFF
   # Base directory of dataset.
-  basedir: ../data/beta
+  basedir: ../data/nerf_example_data/nerf_llff_data/fern
   # choose if each iteration sample ray from single image or from multiple:
   single_image_mode: True
   # Do not use NDC (normalized device coordinates). use only with forward facing scenes
-  ndc_rays: False
-  ndc_coef: 1
+  ndc_rays: True
   # Near clip plane (clip all depth values closer than this threshold).
   near: 0 # 1
   # Far clip plane (clip all depth values farther than this threshold).
-  far: 14 # 7
+  far: 7 # 7
   # combined - sampling uniform with half of the samples up to 1, then log sampling
   combined_sampling_method: False
   combined_split: 2
   # Downsample factor (used to downsample input images)
   downsample_factor: 4
-  bd_factor: False
+  bd_factor: 0.75
   # when training is made with only part of the images
   reduce_image_number_by: 1
   # define if to normalize (divide all poses location in the distance of the mosr for poses from the world origin)
-  normalize_poses: True
+  normalize_poses: False
   normalize_factor: 5
   # indexes modulo for validation set
-  llffhold: 10
+  llffhold: 8
   # at half the original resolution of 800 x 800, to save space.
   half_res: False
   # Stride (include one per "testskip" images in the dataset).
@@ -71,6 +64,8 @@ dataset:
 models:
   # Name of the torch.nn.Module class that implements the model.
   type: DDNerfModel
+  coarse_hidden_size: 64
+  fine_hidden_size: 340
   # Whether or not to perform log sampling in the positional encoding
   # of the coordinates.
   log_sampling_xyz: True
@@ -118,9 +113,9 @@ nerf:
     # Whether or not to perturb the sampled depth values.
     perturb: True
     # Number of depth samples per ray for the coarse network.
-    num_coarse: 32
+    num_coarse: 8
     # Number of depth samples per ray for the fine network.
-    num_fine: 32
+    num_fine: 8
     # Whether to render models using a white background.
     white_background: False
     # Standard deviation of noise to be added to the radiance field when
@@ -137,9 +132,9 @@ nerf:
     # Whether or not to perturb the sampled depth values.
     perturb: False
     # Number of depth samples per ray for the coarse network.
-    num_coarse: 32
+    num_coarse: 8
     # Number of depth samples per ray for the fine network.
-    num_fine: 32
+    num_fine: 8
     # Whether to render models using a white background.
     white_background: False
     # Standard deviation of noise to be added to the radiance field when

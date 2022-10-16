@@ -16,7 +16,6 @@ class Documenter():
             self.writer.add_scalar("train_depth/depth_prediction_loss", loss_list[2].item(), idx)
             self.writer.add_scalar("train_params/sig_reg_coef", cfg.train_params.sig_regularization, idx)
             self.writer.add_scalar("train_params/gaussian_smooth_factor", cfg.train_params.gaussian_smooth_factor, idx)
-            self.writer.add_scalar("train_params/local_smooth_factor", cfg.train_params.local_smooth_factor, idx)
             self.writer.add_scalar("train_depth/sig_reg",  output[0]["sig_reg"], idx)
             self.writer.add_scalar("train_depth/sig_loss", output[0]["sig_loss"], idx)
             self.writer.add_scalar("train_depth/mus_reg", output[0]["mus_reg"], idx)
@@ -46,40 +45,12 @@ class Documenter():
         if len(loss_list) == 3:
             self.writer.add_scalar("validation/depth_prediction_loss", loss_list[2].item(), idx)
 
-        if "bfp_95" in output_dict[0].keys():
-            self.writer.add_histogram("bins_per_percentage/coarse_95", output_dict[0]["bfp_95"].reshape(-1, 1), idx)
-
-        if "bfp_90" in output_dict[0].keys():
-            self.writer.add_histogram("bins_per_percentage/coarse_90", output_dict[0]["bfp_90"].reshape(-1, 1), idx)
-
-        if "bfp_80" in output_dict[0].keys():
-            self.writer.add_histogram("bins_per_percentage/coarse_80", output_dict[0]["bfp_80"].reshape(-1, 1), idx)
-
-
-        if "bfp_95" in output_dict[1].keys():
-            self.writer.add_histogram("bins_per_percentage/fine_95", output_dict[1]["bfp_95"].reshape(-1, 1), idx)
-
-        if "bfp_90" in output_dict[1].keys():
-            self.writer.add_histogram("bins_per_percentage/fine_90", output_dict[1]["bfp_90"].reshape(-1, 1), idx)
-
-        if "bfp_80" in output_dict[1].keys():
-            self.writer.add_histogram("bins_per_percentage/fine_80", output_dict[1]["bfp_80"].reshape(-1, 1), idx)
-
-        if "weights_sum" in output_dict[1].keys():
-            self.writer.add_histogram("weights_sum/fine", output_dict[1]["weights_sum"].reshape(-1, 1), idx)
-
-
-        if "weights_sum" in output_dict[0].keys():
-            self.writer.add_histogram("weights_sum/coarse", output_dict[0]["weights_sum"].reshape(-1, 1), idx)
-
         if cfg.models.type == 'DDNerfModel':
             self.writer.add_histogram("depth_prediction/mu_hist", output_dict[0]["mus"].reshape(-1, 1), idx)
             self.writer.add_histogram("depth_prediction/sigma_hist", output_dict[0]["sigmas"].reshape(-1, 1), idx)
             self.writer.add_histogram("depth_prediction/smoothed_sigmas", output_dict[0]["smoothed_sigmas"].reshape(-1, 1), idx)
             self.writer.add_image("disparity_coarse_corr/coarse_corr",
                                   cast_to_disparity_image(output_dict[0]['corrected_disp_map']), idx)
-
-
 
 
     def write_depth_analysis_rays(self, idx, output_dict, da_depth, cfg):

@@ -2,7 +2,7 @@ import os
 
 import imageio
 import numpy as np
-from nerf_utils.load_blender import pose_spherical
+from data_utils.load_blender import pose_spherical
 import torch
 # Implementation from:
 # https://github.com/yenchenlin/nerf-pytorch/blob/master/load_llff.py

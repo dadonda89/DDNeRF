@@ -1,5 +1,5 @@
-from nerf_utils.math_utils import *
-from nerf_utils.nerf_helpers_and_samplers import get_minibatches
+from general_utils.math_utils import *
+from general_utils.nerf_helpers import get_minibatches
 from copy import deepcopy
 import torch
 

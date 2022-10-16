@@ -1,13 +1,10 @@
 import torch
 
 from models import base_architectures
-from models.samplers_nad_helpers import *
-from nerf_utils import get_embedding_function
-from nerf_utils.nerf_helpers_and_samplers import get_minibatches
-from nerf_utils.volume_rendering_utils import volume_render_radiance_field
-from nerf_utils.math_utils import *
-from nerf_utils.loss import *
-from nerf_utils import run_network
+from models.samplers import *
+from models.dd_utils import estimate_dp_loss
+from general_utils.volume_rendering_utils import volume_render_radiance_field
+from general_utils.nerf_helpers import get_embedding_function
 
 class GeneralMipNerfModel(torch.nn.Module):
     """
@@ -17,12 +14,16 @@ class GeneralMipNerfModel(torch.nn.Module):
     def __init__(self, cfg, backbone="MipNeRFModel"):
         super(GeneralMipNerfModel, self).__init__()
 
+        hidden_size_coarse = cfg.models.coarse_hidden_size
+
         self.coarse = getattr(base_architectures, backbone)(
+                        hidden_size=hidden_size_coarse,
                         max_ipe_deg=16,
                         num_encoding_fn_dir=4,
                         include_input_xyz=False,
                         include_input_dir=True,
                         use_viewdirs=True,
+
                     )
         self.fine = self.coarse
 
@@ -74,7 +75,6 @@ class GeneralMipNerfModel(torch.nn.Module):
     def predict(self, ray_batch, mode, depth_analysis_validation, rgb_target = None):
 
         ro, rd = ray_batch[..., :3], ray_batch[..., 3:6]
-        rr = ray_batch[..., 6].reshape(-1, 1)
         bounds = ray_batch[..., 7:9].view((-1, 1, 2))
         near, far = bounds[..., 0], bounds[..., 1]
 
@@ -93,12 +93,8 @@ class GeneralMipNerfModel(torch.nn.Module):
                 )
                 t_vals = t_vals.detach()
 
-            samples = cast_rays(t_vals, ro, rd, rr, self.cfg.nerf.ray_shape)
 
-            enc_samples = self.encode_position_fn(samples)
-
-            radiance_field = run_network(self.coarse, enc_samples, ray_batch, getattr(self.cfg.nerf, mode).chunksize,
-                                         self.encode_direction_fn)
+            radiance_field = self.run_network(ray_batch, t_vals, self.coarse, mode)
 
             rgb, disp, acc, weights, depth, _, _ = volume_render_radiance_field(radiance_field, t_vals, rd,
                                                                                 radiance_field_noise_std=getattr(
@@ -108,18 +104,42 @@ class GeneralMipNerfModel(torch.nn.Module):
                                                                                             mode).white_background,
                                                                                 cfg=self.cfg
                                                                                 )
-            bfp_95 = bins_for_percentage(weights, 0.95)
-            bfp_90 = bins_for_percentage(weights, 0.9)
-            bfp_80 = bins_for_percentage(weights, 0.8)
 
-            ret_dict[i] = {"rgb": rgb, "disp": disp, "acc": acc, "weights": weights, "depth": depth,
-                           "bfp_95": bfp_95, "bfp_90": bfp_90, "bfp_80": bfp_80}
+            ret_dict[i] = {"rgb": rgb, "disp": disp, "acc": acc, "weights": weights, "depth": depth}
 
             if depth_analysis_validation:
                 ret_dict[i]["uniform_incell_pdf_to_plot"] = get_uniform_incell_pdf(t_vals, weights, self.cfg)
                 ret_dict[i]["t_vals_for_plot"] = t_vals
 
         return ret_dict
+
+
+    def run_network(self, ray_batch, t_vals, network, mode):
+
+        ro, rd = ray_batch[..., :3], ray_batch[..., 3:6]
+        rr = ray_batch[..., 6].reshape(-1, 1)
+
+        chunksize = getattr(self.cfg.nerf, mode).chunksize
+        embeddirs_fn = self.encode_direction_fn
+        samples = cast_rays(t_vals, ro, rd, rr, self.cfg.nerf.ray_shape)
+
+        enc_samples = self.encode_position_fn(samples)
+
+        if embeddirs_fn is not None:
+            viewdirs = ray_batch[..., None, -3:]
+            input_dirs = viewdirs.expand(viewdirs.shape[0], enc_samples.shape[1], viewdirs.shape[2])
+            input_dirs_flat = input_dirs.reshape((-1, input_dirs.shape[-1]))
+            embedded_dirs = embeddirs_fn(input_dirs_flat)
+            embedded = torch.cat((enc_samples.reshape(-1, enc_samples.shape[-1]), embedded_dirs), dim=-1)
+
+        batches = get_minibatches(embedded, chunksize=chunksize)
+        preds = [network(batch.type(torch.float)) for batch in batches]
+        radiance_field = torch.cat(preds, dim=0)
+
+        radiance_field = radiance_field.reshape(
+            list(enc_samples.shape[:-1]) + [radiance_field.shape[-1]]
+        )
+        return radiance_field
 
     def get_rays_batches(self, ray_origins, ray_directions, ray_rad, mode):
 
@@ -169,7 +189,14 @@ class DDNerfModel(GeneralMipNerfModel):
     def __init__(self, cfg):
         GeneralMipNerfModel.__init__(self, cfg, backbone="DepthMipNeRFModel")
 
+        try:
+            hidden_size_fine = cfg.models.fine_hidden_size
+        except:
+            print("no nidden size params for fine model, set 256")
+            hidden_size_fine = 256
+
         self.fine = base_architectures.MipNeRFModel(
+            hidden_size=hidden_size_fine,
             max_ipe_deg=16,
             num_encoding_fn_dir=4,
             include_input_xyz=False,
@@ -180,7 +207,6 @@ class DDNerfModel(GeneralMipNerfModel):
     def predict(self, ray_batch, mode, depth_analysis_validation, rgb_target):
 
         ro, rd = ray_batch[..., :3], ray_batch[..., 3:6]
-        rr = ray_batch[..., 6].reshape(-1, 1)
         bounds = ray_batch[..., 7:9].view((-1, 1, 2))
         near, far = bounds[..., 0], bounds[..., 1]
 
@@ -210,51 +236,17 @@ class DDNerfModel(GeneralMipNerfModel):
                     det=(getattr(self.cfg.nerf, mode).perturb == 0.0)
                 )
 
-            samples = cast_rays(t_vals, ro, rd, rr, self.cfg.nerf.ray_shape)
 
-            enc_samples = self.encode_position_fn(samples)
-
-            radiance_field = run_network(model, enc_samples, ray_batch, getattr(self.cfg.nerf, mode).chunksize,
-                                         self.encode_direction_fn)
+            radiance_field = self.run_network(ray_batch, t_vals, model, mode)
 
             if i == 0:
                 raw_mus, raw_sigmas = radiance_field[:, :, -2], radiance_field[:, :, -1]
 
-                sig_loss = torch.nn.functional.mse_loss(raw_sigmas, torch.zeros_like(raw_sigmas))
-                mus_loss = torch.nn.functional.mse_loss(raw_mus, torch.zeros_like(raw_mus))
+                mus = torch.sigmoid(raw_mus)
+                sigmas = torch.sigmoid(raw_sigmas) + 0.001
 
-                mus = torch.sigmoid(raw_mus / self.cfg.train_params.reg_reduction_factor)
-                sigmas = torch.sigmoid(raw_sigmas / self.cfg.train_params.reg_reduction_factor) + 0.001
-                #sigmas = sigmas*0 + 0.25
-
-                try:
-                    if self.cfg.train_params.musig_activation == "sin":
-                        mus = (torch.sin(raw_mus)+1)/2
-                        sigmas = (torch.sin(raw_sigmas)+1)/2 + 0.001
-
-                except:
-                    pass
-
-                try:
-                    if self.cfg.train_params.reg_loss_type == "L1":
-                        sig_loss = torch.nn.functional.l1_loss(raw_sigmas, torch.zeros_like(raw_sigmas))
-                        mus_loss = torch.nn.functional.l1_loss(raw_mus, torch.zeros_like(raw_mus))
-
-                    elif self.cfg.train_params.reg_loss_type == "MSE_v1":
-                        sig_loss = (torch.abs(raw_sigmas)**self.cfg.train_params.p).sum()/raw_sigmas.shape[0]
-                        mus_loss = (torch.abs(raw_mus)**self.cfg.train_params.p).sum()/raw_mus.shape[0]
-
-
-                    elif self.cfg.train_params.reg_loss_type == "MSE_v2":
-                        sig_loss = torch.nn.functional.mse_loss(sigmas, torch.ones_like(sigmas)*0.5, reduction="sum")
-                        mus_loss = torch.nn.functional.mse_loss(mus, torch.ones_like(mus)*0.5, reduction="sum")
-
-                    elif self.cfg.train_params.reg_loss_type == "MSE_v3":
-                        sig_loss = torch.nn.functional.mse_loss(sigmas, torch.ones_like(sigmas)*0.5)*self.cfg.nerf.train.num_coarse
-                        mus_loss = torch.nn.functional.mse_loss(mus, torch.ones_like(mus)*0.5)*self.cfg.nerf.train.num_coarse
-
-                except:
-                    pass
+                sig_loss = (torch.abs(raw_sigmas)**2).sum()/raw_sigmas.shape[0]
+                mus_loss = (torch.abs(raw_mus)**2).sum()/raw_mus.shape[0]
 
                 mus_reg = self.cfg.train_params.mu_regularization * mus_loss
                 sig_reg = self.cfg.train_params.sig_regularization * sig_loss
@@ -264,9 +256,6 @@ class DDNerfModel(GeneralMipNerfModel):
 
                 left_tail = approximate_cdf(x_0)
                 part_inside_bins = (approximate_cdf(x_1) - left_tail)
-
-
-
 
                 radiance_field = radiance_field[:, :, :-2]
 
@@ -278,21 +267,11 @@ class DDNerfModel(GeneralMipNerfModel):
                 # smoothing in-cell distribution before re-sampling
                 smoothed_sigmas = sigmas * self.cfg.train_params.gaussian_smooth_factor
 
-                if rgb_target is not None and self.cfg.train_params.local_smooth_factor:
-
-                    local_smooth = torch.exp(self.cfg.train_params.local_smooth_factor*(((rgb_target - rgb) ** 2).sum(-1)).reshape(-1, 1))
-                    local_smooth = torch.clip(local_smooth, 1, self.cfg.train_params.max_local_valus)
-                    smoothed_sigmas = smoothed_sigmas*local_smooth
-
-
                 x_0 = (0 - mus) / smoothed_sigmas
                 x_1 = (1 - mus) / smoothed_sigmas
                 smoothed_left_tail = approximate_cdf(x_0)
                 smoothed_part_inside_bins = (approximate_cdf(x_1) - smoothed_left_tail)
 
-            bfp_95 = bins_for_percentage(weights, 0.95)
-            bfp_90 = bins_for_percentage(weights, 0.9)
-            bfp_80 = bins_for_percentage(weights, 0.8)
 
             if i == 0:
                 t_vals_0 = t_vals
@@ -305,7 +284,7 @@ class DDNerfModel(GeneralMipNerfModel):
             dp_loss = None
             if i == 1:
 
-                dp_loss = estimate_dp_loss_v6(t_vals.detach(), t_vals_0.detach(), weights.detach(), weights_0, mus_0,
+                dp_loss = estimate_dp_loss(t_vals.detach(), t_vals_0.detach(), weights.detach(), weights_0, mus_0,
                                               sigmas_0, left_tails_0.detach(), part_inside_cells_0.detach(), self.cfg)*(t_vals.shape[1]-1)
                 dp_loss = (dp_loss + mus_reg + sig_reg).unsqueeze(0)
 
@@ -318,7 +297,7 @@ class DDNerfModel(GeneralMipNerfModel):
             ret_dict[i] = {"rgb": rgb, "disp": disp, "acc": acc, "weights": weights, "depth": depth,
                            "mus": mus_to_record,
                            "sigmas": sigmas_to_record, "dp_loss": dp_loss, "corrected_disp_map": corrected_disp_map,
-                           "bfp_95": bfp_95, "bfp_90": bfp_90, "bfp_80": bfp_80, "weights_sum": weights.sum(-1), "smoothed_sigmas" : smoothed_sigmas[pdf > 0.1]}
+                           "smoothed_sigmas" : smoothed_sigmas[pdf > 0.1]}
 
             if i == 0:
                 ret_dict[i]["mus_loss"] = mus_loss.unsqueeze(0)
