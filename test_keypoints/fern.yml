@@ -1,0 +1,14 @@
+img_idx: 0
+resized_by: 4 # the down sample factor to the original image that the pixel was chosen from
+
+pixels_and_depth: # [i,j,depth]
+  0: [571, 103, 2.451]
+  1: [439, 151, 2.5005]
+  2: [52, 432, 2.737]
+  3: [560, 434, 1.5731]
+  4: [514, 519, 2.4122]
+  5: [529, 629, 2.9714]
+  6: [526, 695, 3.0970]
+  7: [237, 753, 5.8555]
+  8: [208, 870, 4.5532]
+  9: [628, 721, 3.0460]

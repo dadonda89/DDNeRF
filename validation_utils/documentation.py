@@ -14,7 +14,7 @@ class Documenter():
         self.writer.add_scalar("train/fine_loss", loss_list[1].item(), idx)
         if len(loss_list) == 3:
             self.writer.add_scalar("train_depth/depth_prediction_loss", loss_list[2].item(), idx)
-            self.writer.add_scalar("train_params/sig_reg_coef", cfg.train_params.sig_regularization, idx)
+            self.writer.add_scalar("train_params/sig_reg_coef", cfg.train_params.dist_reg_coeficient, idx)
             self.writer.add_scalar("train_params/gaussian_smooth_factor", cfg.train_params.gaussian_smooth_factor, idx)
             self.writer.add_scalar("train_depth/sig_reg",  output[0]["sig_reg"], idx)
             self.writer.add_scalar("train_depth/sig_loss", output[0]["sig_loss"], idx)
@@ -45,7 +45,7 @@ class Documenter():
         if len(loss_list) == 3:
             self.writer.add_scalar("validation/depth_prediction_loss", loss_list[2].item(), idx)
 
-        if cfg.models.type == 'DDNerfModel':
+        if cfg.nerf.type == 'DDNerfModel':
             self.writer.add_histogram("depth_prediction/mu_hist", output_dict[0]["mus"].reshape(-1, 1), idx)
             self.writer.add_histogram("depth_prediction/sigma_hist", output_dict[0]["sigmas"].reshape(-1, 1), idx)
             self.writer.add_histogram("depth_prediction/smoothed_sigmas", output_dict[0]["smoothed_sigmas"].reshape(-1, 1), idx)

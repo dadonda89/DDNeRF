@@ -4,18 +4,13 @@ import numpy as np
 
 from data_utils.load_llff import load_llff_data
 from data_utils.load_blender import load_blender_data
-from data_utils.load_tat import load_tat_data
-from data_utils.dataset import TrainDataset, ValDataset, TrainTatDataset, ValTatDataset
+from data_utils.dataset import TrainDataset, ValDataset
 
 
 def get_datasets(cfg):
 
     if cfg.dataset.type.lower() == "blender" or cfg.dataset.type.lower() == "llff":
         train_dataset, val_dataset = load_blender_or_llff_datasets(cfg)
-
-    elif cfg.dataset.type.lower() == "tat":
-        train_dataset, val_dataset = load_tat_dataset(cfg)
-
     else:
         print(f"not familier with dataset type - {cfg.dataset.type.lower()}")
         exit()
@@ -91,23 +86,6 @@ def load_blender_or_llff_datasets(cfg):
     return train_dataset, val_dataset
 
 
-def load_tat_dataset(cfg):
-    train_poses, train_images, train_intrinsics = load_tat_data(cfg.dataset.basedir, "train", cfg)
-    val_poses, val_images, val_intrinsics = load_tat_data(cfg.dataset.basedir, "validation", cfg)
-
-    if cfg.dataset.normalize_poses:
-
-        cfg.dataset.near = cfg.dataset.near / cfg.dataset.normalize_factor
-        cfg.dataset.far = cfg.dataset.far / cfg.dataset.normalize_factor
-        cfg.dataset.combined_split = cfg.dataset.combined_split / cfg.dataset.normalize_factor
-
-    train_dataset = TrainTatDataset(train_poses, train_images, train_intrinsics,
-                                    single_image_mode=cfg.dataset.single_image_mode)
-
-    val_dataset = ValTatDataset(val_poses, val_images, val_intrinsics, cfg=cfg)
-
-    return train_dataset, val_dataset
-
 
 def load_dataset(cfg):
 
@@ -156,22 +134,6 @@ def load_dataset(cfg):
         )
         images = torch.from_numpy(images)
         poses = torch.from_numpy(poses)
-
-    elif cfg.dataset.type.lower() == "tat":
-        train_poses, train_images, train_H, train_W, train_focal = load_tat_data(cfg.dataset.basedir, "train")
-        val_poses, val_images, val_H, val_W, val_focal = load_tat_data(cfg.dataset.basedir, "validation")
-
-        poses = torch.cat((train_poses, val_poses))
-        images = torch.cat((train_images, val_images))
-
-        if (train_H != val_H) or (train_W != val_W) or (train_focal != val_focal) :
-            print("val and train not have the same data preperties")
-            exit()
-
-        hwf = (train_H, train_W, train_focal)
-
-        i_train = np.arange(train_images.shape[0])
-        i_val = np.arange(val_images.shape[0]) + train_images.shape[0]
 
     else:
         print(f"not familier with dataset type - {cfg.dataset.type.lower()}")

@@ -66,7 +66,7 @@ def main():
 
 
     # load model
-    model = getattr(models, cfg.models.type)(cfg)
+    model = getattr(models, cfg.nerf.type)(cfg)
     model.to(device)
 
     # By default, start at iteration 0 (unless a checkpoint is specified).
@@ -89,7 +89,7 @@ def main():
     ))
 
     # add optimizer for DDNeRF fine model
-    if cfg.models.type != "GeneralMipNerfModel":
+    if cfg.nerf.type != "GeneralMipNerfModel":
         trainable_parameters = model.fine.parameters()
 
         optims.append(getattr(torch.optim, cfg.optimizer.type)(
@@ -160,7 +160,7 @@ def main():
             loss_list.append(torch.nn.functional.mse_loss(output[j]['rgb'], target_s))
             loss = loss + cfg.train_params.loss_coeficients[j]*loss_list[j]
 
-        if cfg.models.type == 'DDNerfModel':
+        if cfg.nerf.type == 'DDNerfModel':
 
             dp_loss = output[1]["dp_loss"].mean()
             loss += cfg.train_params.dp_coeficient*dp_loss
@@ -214,7 +214,7 @@ def main():
                     loss_list.append(torch.nn.functional.mse_loss(output[j]['rgb'], img_target))
                     loss = loss + cfg.train_params.loss_coeficients[j] * loss_list[j]
 
-                if cfg.models.type == 'DDNerfModel':
+                if cfg.nerf.type == 'DDNerfModel':
                     dp_loss = output[1]["dp_loss"].mean()
                     loss += cfg.train_params.dp_coeficient * dp_loss
                     loss_list.append(dp_loss)
@@ -253,7 +253,7 @@ def main():
                 "loss": loss,
                 "psnr": psnr_fine
             }
-            if cfg.models.type != "GeneralMipNerfModel":
+            if cfg.nerf.type != "GeneralMipNerfModel":
                 checkpoint_dict["model_2_state_dict"] = model.fine.state_dict()
                 checkpoint_dict["optimizer_2_state_dict"] = optims[1].state_dict()
 

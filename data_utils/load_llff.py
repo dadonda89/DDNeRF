@@ -281,7 +281,6 @@ def load_llff_data(
     """
     @param: factor, int - downsampling factor
     """
-    # TODO: set bd_factor to required value after understanding its meaning
     poses, bds, imgs = _load_data(
         basedir, factor=factor
     )  # factor=8 downsamples original imgs by 8x
@@ -297,11 +296,8 @@ def load_llff_data(
     images = imgs
     bds = np.moveaxis(bds, -1, 0).astype(np.float32)
 
-    #pdb.set_trace()
-
     # Rescale if bd_factor is provided
     sc = 1.0 if bd_factor is False else 1.0 / (bds.min() * bd_factor)
-    #sc = 1. / (bds.min() * .75)
     poses[:, :3, 3] *= sc
     bds *= sc
 

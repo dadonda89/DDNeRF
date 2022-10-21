@@ -1,7 +1,7 @@
 # Parameters to setup experiment.
 experiment:
   # Unique experiment identifier
-  id: fern_8_DD_1
+  id: tests_2
   # Experiment logs will be stored at "logdir"/"id"
   logdir: logs/final_code
   # Seed for random number generators (for repeatability).
@@ -20,11 +20,10 @@ train_params:
   max_pdf_pad_iters: 20000
   gaussian_smooth_factor: 1.7
   final_smooth: 1.1
-  max_local_valus: 3
-  finnish_smooth: 100000
-  mu_regularization: 0.08
-  sig_regularization: 0.08
+  finnish_smooth: 50000
   depth_analysis_rays: True # bool, if true analyze depth estimation
+  depth_analysis_path: test_keypoints/fern.yml
+  dist_reg_coeficient: 0.1
   loss_coeficients: [1, 1]
   dp_coeficient: 0.1
 
@@ -41,43 +40,24 @@ dataset:
   # Near clip plane (clip all depth values closer than this threshold).
   near: 0 # 1
   # Far clip plane (clip all depth values farther than this threshold).
-  far: 7 # 7
-  # combined - sampling uniform with half of the samples up to 1, then log sampling
+  far: 1 # 7
+  # combined - sampling uniform with half of the samples up to 'combined_split' depth, then log sampling
   combined_sampling_method: False
   combined_split: 2
   # Downsample factor (used to downsample input images)
-  downsample_factor: 4
-  bd_factor: 0.75
+  downsample_factor: 2
   # when training is made with only part of the images
   reduce_image_number_by: 1
   # define if to normalize (divide all poses location in the distance of the mosr for poses from the world origin)
   normalize_poses: False
   normalize_factor: 5
+  bd_factor: 0.75  # for ff scene set to 0.75 otherwise -> set False
   # indexes modulo for validation set
   llffhold: 8
   # at half the original resolution of 800 x 800, to save space.
   half_res: False
   # Stride (include one per "testskip" images in the dataset).
   testskip: 1
-
-# Model parameters.
-models:
-  # Name of the torch.nn.Module class that implements the model.
-  type: DDNerfModel
-  coarse_hidden_size: 64
-  fine_hidden_size: 340
-  # Whether or not to perform log sampling in the positional encoding
-  # of the coordinates.
-  log_sampling_xyz: True
-  # Number of encoding functions to use in the positional encoding
-  # of the coordinates.
-  num_encoding_fn_xyz: 10
-  # Number of encoding functions to use in the positional encoding
-  # of the direction.
-  num_encoding_fn_dir: 4
-  # Whether or not to perform log sampling in the positional encoding
-  # of the direction.
-  log_sampling_dir: True
 
 # Optimizer params.
 optimizer:
@@ -95,13 +75,10 @@ scheduler:
 
 # NeRF parameters.
 nerf:
-  # Use viewing directions as input, in addition to the X, Y, Z coordinates.
-  use_viewdirs: True
-  # Encoding function for position (X, Y, Z).
-  encode_position_fn: positional_encoding
-  # Encoding function for ray direction (theta, phi).
-  encode_direction_fn: positional_encoding
-  # Training-specific parameters.
+  # Name of the torch.nn.Module class that implements the model.
+  type: DDNerfModel
+  coarse_hidden_size: 256
+  fine_hidden_size: 256
   ray_shape: 'cone'  # 'cylinder' or 'cone'
   train:
     # Number of random rays to retain from each image.

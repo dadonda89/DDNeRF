@@ -14,7 +14,7 @@ class GeneralMipNerfModel(torch.nn.Module):
     def __init__(self, cfg, backbone="MipNeRFModel"):
         super(GeneralMipNerfModel, self).__init__()
 
-        hidden_size_coarse = cfg.models.coarse_hidden_size
+        hidden_size_coarse = cfg.nerf.coarse_hidden_size
 
         self.coarse = getattr(base_architectures, backbone)(
                         hidden_size=hidden_size_coarse,
@@ -169,7 +169,7 @@ class GeneralMipNerfModel(torch.nn.Module):
     def load_weights_from_checkpoint(self, checkpoint):
 
         self.coarse.load_state_dict(checkpoint["model_1_state_dict"])
-        if self.cfg.models.type != "GeneralMipNerfModel":
+        if self.cfg.nerf.type != "GeneralMipNerfModel":
             self.fine.load_state_dict(checkpoint["model_2_state_dict"])
 
 
@@ -190,7 +190,7 @@ class DDNerfModel(GeneralMipNerfModel):
         GeneralMipNerfModel.__init__(self, cfg, backbone="DepthMipNeRFModel")
 
         try:
-            hidden_size_fine = cfg.models.fine_hidden_size
+            hidden_size_fine = cfg.nerf.fine_hidden_size
         except:
             print("no nidden size params for fine model, set 256")
             hidden_size_fine = 256
@@ -248,8 +248,8 @@ class DDNerfModel(GeneralMipNerfModel):
                 sig_loss = (torch.abs(raw_sigmas)**2).sum()/raw_sigmas.shape[0]
                 mus_loss = (torch.abs(raw_mus)**2).sum()/raw_mus.shape[0]
 
-                mus_reg = self.cfg.train_params.mu_regularization * mus_loss
-                sig_reg = self.cfg.train_params.sig_regularization * sig_loss
+                mus_reg = self.cfg.train_params.dist_reg_coeficient * mus_loss
+                sig_reg = self.cfg.train_params.dist_reg_coeficient * sig_loss
 
                 x_0 = (0 - mus) / sigmas
                 x_1 = (1 - mus) / sigmas
