@@ -5,7 +5,13 @@ This repo is also contains torch implementation to MipNeRF model.
 Some functions in this repo were taken from:
 #####   - https://github.com/Fyusion/LLFF
 #####   - https://github.com/yenchenlin/nerf-pytorch
-     
+
+### create and activate conda environment:
+
+    conda env create -f environment.yml
+    conda activate nerf
+    
+
 ###train model:
      
      python train_model.py --config XXXX.yaml
