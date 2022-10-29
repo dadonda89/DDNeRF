@@ -1,19 +1,19 @@
 # Parameters to setup experiment.
 experiment:
   # Unique experiment identifier
-  id: tests_2
+  id: r_4_256
   # Experiment logs will be stored at "logdir"/"id"
-  logdir: logs/final_code
+  logdir: logs/final_code/trex
   # Seed for random number generators (for repeatability).
   randomseed: 42  # 8239
   # Number of training iterations.
-  train_iters: 100001
+  train_iters: 200001
   # Number of training iterations after which to validate.
-  validate_every: 2000
+  validate_every: 5000
   # Number of training iterations after which to checkpoint.
-  save_every: 2000
+  save_every: 5000
   # Number of training iterations after which to print progress.
-  print_every: 200
+  print_every: 500
 
 train_params:
   pdf_padding: True
@@ -21,9 +21,10 @@ train_params:
   gaussian_smooth_factor: 1.7
   final_smooth: 1.1
   finnish_smooth: 50000
-  depth_analysis_rays: True # bool, if true analyze depth estimation
+  depth_analysis_rays: False # bool, if true analyze depth estimation
   depth_analysis_path: test_keypoints/fern.yml
   dist_reg_coeficient: 0.1
+  set_automatic_dist_reg_coeficient: True # if true - set 'dist_reg_coeficient' to max(0.01, 1/number of samples)
   loss_coeficients: [1, 1]
   dp_coeficient: 0.1
 
@@ -32,7 +33,7 @@ dataset:
   # Type of the dataset (Blender vs LLFF) uses to decide with load data functions will be in use
   type: LLFF
   # Base directory of dataset.
-  basedir: ../data/nerf_example_data/nerf_llff_data/fern
+  basedir: ../data/nerf_llff_data/trex
   # choose if each iteration sample ray from single image or from multiple:
   single_image_mode: True
   # Do not use NDC (normalized device coordinates). use only with forward facing scenes
@@ -45,12 +46,13 @@ dataset:
   combined_sampling_method: False
   combined_split: 2
   # Downsample factor (used to downsample input images)
-  downsample_factor: 2
+  downsample_factor: 4
   # when training is made with only part of the images
   reduce_image_number_by: 1
   # define if to normalize (divide all poses location in the distance of the mosr for poses from the world origin)
   normalize_poses: False
   normalize_factor: 5
+  spherify_poses: False
   bd_factor: 0.75  # for ff scene set to 0.75 otherwise -> set False
   # indexes modulo for validation set
   llffhold: 8
@@ -76,7 +78,7 @@ scheduler:
 # NeRF parameters.
 nerf:
   # Name of the torch.nn.Module class that implements the model.
-  type: DDNerfModel
+  type: GeneralMipNerfModel
   coarse_hidden_size: 256
   fine_hidden_size: 256
   ray_shape: 'cone'  # 'cylinder' or 'cone'
@@ -90,9 +92,9 @@ nerf:
     # Whether or not to perturb the sampled depth values.
     perturb: True
     # Number of depth samples per ray for the coarse network.
-    num_coarse: 8
+    num_coarse: 4
     # Number of depth samples per ray for the fine network.
-    num_fine: 8
+    num_fine: 4
     # Whether to render models using a white background.
     white_background: False
     # Standard deviation of noise to be added to the radiance field when
@@ -109,9 +111,9 @@ nerf:
     # Whether or not to perturb the sampled depth values.
     perturb: False
     # Number of depth samples per ray for the coarse network.
-    num_coarse: 8
+    num_coarse: 4
     # Number of depth samples per ray for the fine network.
-    num_fine: 8
+    num_fine: 4
     # Whether to render models using a white background.
     white_background: False
     # Standard deviation of noise to be added to the radiance field when

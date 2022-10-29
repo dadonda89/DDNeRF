@@ -169,6 +169,6 @@ if __name__ == "__main__":
     LARGE_ENOUGH_NUMBER = 2
     PngImagePlugin.MAX_TEXT_CHUNK = LARGE_ENOUGH_NUMBER * (1024 ** 2)
 
-    logdir = '/home/ddadon/nerf/DDNeRF/logs/final_code/fern_8_DD_2'
+    logdir = "/home/ddadon/nerf/DDNeRF/logs/final_code/dd_64_340_ff"
 
-    eval_model(logdir, checkpoint_name="checkpoint", extract_ptc=False, save_images=False)
+    eval_model(logdir, checkpoint_name="checkpoint", extract_ptc=False, save_images=True)

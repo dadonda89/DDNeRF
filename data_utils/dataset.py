@@ -64,7 +64,7 @@ class ValDataset():
     """
     this object generate rays for training, it is different from the regular function because its take rays from multiple images in each iteration
     """
-    def __init__(self, poses, images, focal, ndc_rays=False, cfg=None):
+    def __init__(self, poses, images, focal, ndc_rays=False, cfg=None, render_poses=None):
 
         self.images = images
         self.poses = poses
@@ -83,6 +83,8 @@ class ValDataset():
         if cfg.train_params.depth_analysis_rays:
             self.da_origins, self.da_directions, self.da_rad, self.da_depth, self.da_rgb = self.load_depth_analysis_rays(cfg)
 
+        self.render_poses = render_poses
+        self.render_idx = 0
 
 
         print(f"validation set init finnished, {images.shape[0]} images in the dataset")
@@ -154,4 +156,14 @@ class ValDataset():
     def get_depth_analysis_rays(self, device):
         return self.da_origins.to(device), self.da_directions.to(device), self.da_rad.to(device), \
                self.da_depth, self.da_rgb.to(device)
+
+    def get_next_render_pose(self, device):
+        ray_origins, ray_directions, radii = get_ray_bundle(self.H, self.W, self.focal, self.render_poses[self.render_idx])
+        if self.ndc:
+            ray_origins, ray_directions, radii = ndc_mipnerf_rays(self.H, self.W, self.focal,
+                                                                  ray_origins,
+                                                                  ray_directions, self.near)
+        self.render_idx += 1
+        return ray_origins.to(device), ray_directions.to(device), radii.to(device)
+
 

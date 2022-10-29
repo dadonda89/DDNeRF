@@ -4,6 +4,7 @@ import imageio
 import numpy as np
 from data_utils.load_blender import pose_spherical
 import torch
+from data_utils.poses.pose_utils import gen_poses
 # Implementation from:
 # https://github.com/yenchenlin/nerf-pytorch/blob/master/load_llff.py
 # Slightly modified version of LLFF data loading code
@@ -66,6 +67,10 @@ def _minify(basedir, factors=[], resolutions=[]):
 
 
 def _load_data(basedir, factor=None, width=None, height=None, load_imgs=True):
+
+    if not os.path.exists(os.path.join(basedir, "poses_bounds.npy")):
+        gen_poses(basedir)
+
     poses_arr = np.load(os.path.join(basedir, "poses_bounds.npy"))
     poses = poses_arr[:, :-2].reshape([-1, 3, 5]).transpose([1, 2, 0])
     # poses : 3x5 matrix, 3x4 for the cam2world affine transformation and 3x1 for [h,w,f] intrinsic params
@@ -129,7 +134,7 @@ def _load_data(basedir, factor=None, width=None, height=None, load_imgs=True):
         else:
             return imageio.imread(f)
 
-    imgs = imgs = [imread(f)[..., :3] / 255.0 for f in imgfiles]
+    imgs = [imread(f)[..., :3] / 255.0 for f in imgfiles]
     imgs = np.stack(imgs, -1)
 
     print("Loaded image data", imgs.shape, poses[:, -1, 0])
@@ -343,13 +348,13 @@ def load_llff_data(
             c2w_path, up, rads, focal, zdelta, zrate=0.5, rots=N_rots, N=N_views
         )
 
-        render_poses = torch.stack(
-            [
-                torch.from_numpy(pose_spherical(angle, -12.5, 3.5))  # for the ktm use (angle, -12.5, 3.5), for playground use (angle, -5, 4.5)
-                for angle in np.linspace(-180, 180, 90 + 1)[:-1]
-            ],
-            0,
-        )
+        # render_poses = torch.stack(
+        #     [
+        #         torch.from_numpy(pose_spherical(angle, -12.5, 3.5))  # for the ktm use (angle, -12.5, 3.5), for playground use (angle, -5, 4.5)
+        #         for angle in np.linspace(-180, 180, 90 + 1)[:-1]
+        #     ],
+        #     0,
+        # )
 
     render_poses = np.array(render_poses).astype(np.float32)
 

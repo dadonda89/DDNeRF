@@ -49,6 +49,7 @@ def main():
     seed = cfg.experiment.randomseed
     np.random.seed(seed)
     torch.manual_seed(seed)
+
     # Device on which to run.
     if torch.cuda.is_available():
         device = "cuda"
@@ -57,7 +58,7 @@ def main():
 
     print('device = {}'.format(device))
 
-    # get dataset
+    # get datasets
     train_dataset, val_dataset = get_datasets(cfg)
 
     # load data for depth analysis:
@@ -120,14 +121,13 @@ def main():
     dsmooth = (cfg.train_params.gaussian_smooth_factor - cfg.train_params.final_smooth)/cfg.train_params.finnish_smooth
     initial_gaussian_smooth = cfg.train_params.gaussian_smooth_factor
 
+    if cfg.train_params.set_automatic_dist_reg_coeficient:
+        cfg.train_params.dist_reg_coeficient = min(max(1/cfg.nerf.train.num_coarse, 0.01), 0.12)
+    print(f"set dist_reg_coeficient to - {cfg.train_params.dist_reg_coeficient}")
+
     ####################
     ### training loop###
     ####################
-
-    print(f"near={cfg.dataset.near}")
-    print(f"mid={cfg.dataset.combined_split}")
-    print(f"far={cfg.dataset.far}")
-
 
     for i in trange(start_iter, cfg.experiment.train_iters):
 

@@ -66,6 +66,7 @@ def load_blender_or_llff_datasets(cfg):
         )
         images = torch.from_numpy(images)
         poses = torch.from_numpy(poses)
+        render_poses = torch.from_numpy(render_poses[:, :3, :4])
 
     _, _, focal = hwf
 
@@ -81,7 +82,7 @@ def load_blender_or_llff_datasets(cfg):
 
     train_dataset = TrainDataset(poses[i_train], images[i_train], focal, ndc_rays=cfg.dataset.ndc_rays,
                                  single_image_mode=cfg.dataset.single_image_mode)
-    val_dataset = ValDataset(poses[i_val], images[i_val], focal, ndc_rays=cfg.dataset.ndc_rays, cfg=cfg)
+    val_dataset = ValDataset(poses[i_val], images[i_val], focal, ndc_rays=cfg.dataset.ndc_rays, cfg=cfg, render_poses=render_poses)
 
     return train_dataset, val_dataset
 
