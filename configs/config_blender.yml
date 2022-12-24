@@ -1,7 +1,7 @@
 # Parameters to setup experiment.
 experiment:
   # Unique experiment identifier
-  id: beta_dd_32
+  id: blender_lego_dd_32
   # Experiment logs will be stored at "logdir"/"id"
   logdir: logs/final_code/tests
   # Seed for random number generators (for repeatability).
@@ -31,17 +31,17 @@ train_params:
 # Dataset parameters.
 dataset:
   # Type of the dataset (Blender vs LLFF) uses to decide with load data functions will be in use
-  type: REAL360
+  type: blender
   # Base directory of dataset.
-  basedir: ../data/beta
+  basedir: ../data/nerf_example_data/nerf_synthetic/lego
   # choose if each iteration sample ray from single image or from multiple:
   single_image_mode: True
   # Do not use NDC (normalized device coordinates). use only with forward facing scenes
   ndc_rays: False
   # Near clip plane (clip all depth values closer than this threshold).
-  near: 1 # 1
+  near: 2
   # Far clip plane (clip all depth values farther than this threshold).
-  far: 14 # 7
+  far: 6
   # combined - sampling uniform with half of the samples up to 'combined_split' depth, then log sampling
   combined_sampling_method: False
   combined_split: 2
@@ -50,7 +50,7 @@ dataset:
   # spherify poses
   spherify: False
   # define normalization (divide all poses location in the distance of the most far pose from the world origin)
-  normalize_poses: True
+  normalize_poses: False
   normalize_factor: 5
   bd_factor: False  # for ff scene set to 0.75 otherwise -> set False
   # indexes modulo for validation set

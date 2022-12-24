@@ -4,24 +4,21 @@ import time
 import imageio
 import numpy as np
 import torch
-import torchvision
 import yaml
 import cv2
 from tqdm import tqdm
-from general_utils import CfgNode, get_ray_bundle
+from general_utils import CfgNode
 from validation_utils.visualization import *
-from data_utils.load_blender import pose_spherical_for_real_world_360
-from data_utils.data_utils import load_dataset, get_datasets
+from data_utils.data_utils import get_datasets
 from models import models
-import pathlib
 
 
 
-def render_model_video(basedir, save_images = True):
+def render_model_video(logdir, save_images = False):
 
-    config_path = os.path.join(basedir, 'config.yml')
-    savedir = os.path.join(basedir, 'video')
-    checkpoint = os.path.join(basedir, 'checkpoint.ckpt')
+    config_path = os.path.join(logdir, 'config.yml')
+    savedir = os.path.join(logdir, 'video')
+    checkpoint = os.path.join(logdir, 'checkpoint.ckpt')
 
     os.makedirs(savedir, exist_ok=True)
 
@@ -72,7 +69,7 @@ def render_model_video(basedir, save_images = True):
 
     # Evaluation loop
     times_per_image = []
-    img_num = 120
+    img_num = val_dataset.render_poses.shape[0]
     for i in tqdm(range(img_num)):
 
         start = time.time()
@@ -113,10 +110,12 @@ if __name__ == "__main__":
     from PIL import PngImagePlugin
     LARGE_ENOUGH_NUMBER = 2
     PngImagePlugin.MAX_TEXT_CHUNK = LARGE_ENOUGH_NUMBER * (1024 ** 2)
-    base_dir = "/home/ddadon/nerf/DDNeRF/logs/final_code/dd_4_256"
-    render_model_video(base_dir, save_images = False)
-    base_dir = "/home/ddadon/nerf/DDNeRF/logs/final_code/r_4_256"
-    render_model_video(base_dir, save_images=False)
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--logdir", type=str, required=True, help="Path to experiment log dir.")
+    parser.add_argument("--save_images", type=bool, default=False, help="denote if to save images one by one of only video")
+    configargs = parser.parse_args()
+    render_model_video(configargs.logdir, save_images=configargs.save_images)
+
 
 
 

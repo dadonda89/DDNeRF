@@ -1,4 +1,5 @@
 import os
+import argparse
 import time
 import numpy as np
 import torch
@@ -169,6 +170,12 @@ if __name__ == "__main__":
     LARGE_ENOUGH_NUMBER = 2
     PngImagePlugin.MAX_TEXT_CHUNK = LARGE_ENOUGH_NUMBER * (1024 ** 2)
 
-    logdir = "/home/ddadon/nerf/DDNeRF/logs/final_code/dd_64_340_ff"
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--logdir", type=str, required=True, help="Path to experiment log dir.")
+    parser.add_argument("--checkpoint", type=str, default='checkpoint', help="Path to experiment log dir.")
+    parser.add_argument("--save_images", type=bool, default=True, help="denote if to save images one by one of only video")
+    parser.add_argument("--extract_ptc", type=bool, default=False, help="denote if to extract point cloud from images")
 
-    eval_model(logdir, checkpoint_name="checkpoint", extract_ptc=False, save_images=True)
+    configargs = parser.parse_args()
+
+    eval_model(configargs.logdir, checkpoint_name=configargs.checkpoint, extract_ptc=configargs.extract_ptc, save_images=configargs.save_images)

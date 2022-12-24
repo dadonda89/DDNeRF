@@ -2,14 +2,14 @@ import torch
 import numpy as np
 
 
-from data_utils.load_llff import load_llff_data
+from data_utils.load_llff import load_data_after_colmap
 from data_utils.load_blender import load_blender_data
 from data_utils.dataset import TrainDataset, ValDataset
 
 
 def get_datasets(cfg):
 
-    if cfg.dataset.type.lower() == "blender" or cfg.dataset.type.lower() == "llff":
+    if cfg.dataset.type.lower() in ["blender", "llff", "real360"]:
         train_dataset, val_dataset = load_blender_or_llff_datasets(cfg)
     else:
         print(f"not familier with dataset type - {cfg.dataset.type.lower()}")
@@ -40,17 +40,11 @@ def load_blender_or_llff_datasets(cfg):
         if not cfg.dataset.half_res:
             images = torch.from_numpy(images)
 
-    elif cfg.dataset.type.lower() == "llff":
-        images, poses, bds, render_poses, i_test = load_llff_data(
-            cfg.dataset.basedir, factor=cfg.dataset.downsample_factor, bd_factor=cfg.dataset.bd_factor
-        )
+    elif cfg.dataset.type.lower() in ["llff", "real360"]:
+        images, poses, bds, render_poses, i_test = load_data_after_colmap(cfg)
+
         hwf = poses[0, :3, -1]
         poses = poses[:, :3, :4]  # the c2w matrix
-
-        if cfg.dataset.reduce_image_number_by != 1:
-            idx = np.array([i for i in np.arange(images.shape[0]) if i % cfg.dataset.reduce_image_number_by == 0])
-            images = images[idx]
-            poses = poses[idx]
 
         if not isinstance(i_test, list):
             i_test = [i_test]
@@ -110,7 +104,7 @@ def load_dataset(cfg):
             images = torch.from_numpy(images)
 
     elif cfg.dataset.type.lower() == "llff":
-        images, poses, bds, render_poses, i_test = load_llff_data(
+        images, poses, bds, render_poses, i_test = load_data_after_colmap(
             cfg.dataset.basedir, factor=cfg.dataset.downsample_factor, bd_factor=cfg.dataset.bd_factor
         )
         hwf = poses[0, :3, -1]

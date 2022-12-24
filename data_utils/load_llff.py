@@ -1,15 +1,9 @@
 import os
-
 import imageio
 import numpy as np
-from data_utils.load_blender import pose_spherical
-import torch
 from data_utils.poses.pose_utils import gen_poses
-# Implementation from:
-# https://github.com/yenchenlin/nerf-pytorch/blob/master/load_llff.py
-# Slightly modified version of LLFF data loading code
-#  see https://github.com/Fyusion/LLFF for original
-import pdb
+from data_utils.load_blender import pose_spherical_for_real_world_360
+import torch
 
 def _minify(basedir, factors=[], resolutions=[]):
     needtoload = False
@@ -280,9 +274,12 @@ def spherify_poses(poses, bds):
     return poses_reset, new_poses, bds
 
 
-def load_llff_data(
-    basedir, factor=8, recenter=True, bd_factor=None, spherify=False, path_zflat=False
-):
+def load_data_after_colmap(cfg, recenter=True):
+
+    basedir = cfg.dataset.basedir
+    factor = cfg.dataset.downsample_factor
+    bd_factor = cfg.dataset.bd_factor
+    spherify  = cfg.dataset.spherify
     """
     @param: factor, int - downsampling factor
     """
@@ -328,35 +325,34 @@ def load_llff_data(
         focal = mean_dz
 
         # Get radii for spiral path
-        shrink_factor = 0.8
         zdelta = close_depth * 0.2
-        tt = poses[:, :3, 3]  # ptstocam(poses[:3,3,:].T, c2w).T
+        tt = poses[:, :3, 3]
         rads = np.percentile(np.abs(tt), 90, 0)
         c2w_path = c2w
         N_views = 120
         N_rots = 2
-        if path_zflat:
-            #             zloc = np.percentile(tt, 10, 0)[2]
-            zloc = -close_depth * 0.1
-            c2w_path[:3, 3] = c2w_path[:3, 3] + zloc * c2w_path[:3, 2]
-            rads[2] = 0.0
-            N_rots = 1
-            N_views /= 2
 
+    if cfg.dataset.type.lower() == "llff":
         # Generate poses for spiral path
         render_poses = render_path_spiral(
             c2w_path, up, rads, focal, zdelta, zrate=0.5, rots=N_rots, N=N_views
         )
+        render_poses = np.array(render_poses).astype(np.float32)
 
-        # render_poses = torch.stack(
-        #     [
-        #         torch.from_numpy(pose_spherical(angle, -12.5, 3.5))  # for the ktm use (angle, -12.5, 3.5), for playground use (angle, -5, 4.5)
-        #         for angle in np.linspace(-180, 180, 90 + 1)[:-1]
-        #     ],
-        #     0,
-        # )
+    elif cfg.dataset.type.lower() == "real360":
+        dataset_name = cfg.dataset.basedir.split("/")[-1]
+        phi = -10
+        dz = 0.89
+        render_poses = torch.stack(
+            [
+                torch.from_numpy(pose_spherical_for_real_world_360(angle, phi, dz, dataset_name))
+                for angle in np.linspace(0, 360, 180 + 1)[:-1]
+            ],
+            0,
+        ).numpy()
+    else:
+        raise Exception("dataset type is not supperted")
 
-    render_poses = np.array(render_poses).astype(np.float32)
 
     c2w = poses_avg(poses)
     print("Data:")

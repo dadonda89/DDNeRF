@@ -1,7 +1,7 @@
 # Parameters to setup experiment.
 experiment:
   # Unique experiment identifier
-  id: beta_dd_32
+  id: beta_mipnerf_32
   # Experiment logs will be stored at "logdir"/"id"
   logdir: logs/final_code/tests
   # Seed for random number generators (for repeatability).
@@ -17,7 +17,7 @@ experiment:
 
 train_params:
   pdf_padding: True
-  max_pdf_pad_iters: 20000
+  max_pdf_pad_iters: 300000
   gaussian_smooth_factor: 1.7
   final_smooth: 1.1
   finnish_smooth: 150000
@@ -77,7 +77,7 @@ scheduler:
 # NeRF parameters.
 nerf:
   # Name of the torch.nn.Module class that implements the model.
-  type: DDNerfModel
+  type: GeneralMipNerfModel
   coarse_hidden_size: 256
   fine_hidden_size: 256
   ray_shape: 'cone'  # 'cylinder' or 'cone'

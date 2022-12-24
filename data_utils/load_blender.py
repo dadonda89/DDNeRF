@@ -1,6 +1,5 @@
 import json
 import os
-
 import cv2
 import imageio
 import numpy as np
@@ -38,8 +37,6 @@ def pose_spherical(theta, phi, radius):
     c2w = translate_by_t_along_z(radius)
     c2w = rotate_by_phi_along_x(phi / 180.0 * np.pi) @ c2w
     c2w = rotate_by_theta_along_y(theta / 180 * np.pi) @ c2w
-    c2w = rotate_by_phi_along_x(22.5 / 180.0 * np.pi) @ c2w # for playground use 35/180
-    c2w = translate_by_t_along_y(-1) @ c2w  # to use in ktm dataset only, for playground skip this row
     c2w = np.array([[-1, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 0, 0, 1]]) @ c2w
     return c2w
 
@@ -58,15 +55,7 @@ def pose_spherical_for_real_world_360(theta, phi, radius, dataset_name):
     c2w = rotate_by_phi_along_x(phi / 180.0 * np.pi) @ c2w
     c2w = rotate_by_theta_along_y(theta / 180 * np.pi) @ c2w
 
-    if dataset_name == "playground_v2":
-        c2w = rotate_by_phi_along_x(45 / 180.0 * np.pi) @ c2w
-
-    elif dataset_name.startswith("ktm"):
-        c2w = rotate_by_phi_along_x(22.5 / 180.0 * np.pi) @ c2w
-        #c2w = translate_by_t_along_y(-1) @ c2w
-        c2w = translate_by_t_along_y(-0.25) @ c2w
-
-    elif dataset_name == "beta":
+    if dataset_name == "beta":
         c2w = rotate_by_phi_along_x(10 / 180.0 * np.pi) @ c2w
         c2w = translate_by_t_along_y(-0.30) @ c2w
         c2w = translate_by_t_along_z(-0.03) @ c2w
@@ -118,7 +107,7 @@ def load_blender_data(basedir, half_res=False, testskip=1, debug=False):
     render_poses = torch.stack(
         [
             torch.from_numpy(pose_spherical(angle, -30.0, 4.0))
-            for angle in np.linspace(-180, 180, 40 + 1)[:-1]
+            for angle in np.linspace(-180, 180, 180 + 1)[:-1]
         ],
         0,
     )
