@@ -1,6 +1,6 @@
 # DDNeRF: Depth Distribution Neural Radiance Fields
 This is the official repo for the paper: Depth Distribution Neural Radiance Fields.
-This repo is also contains torch implementation to MipNeRF model. 
+This repo also contains torch implementation of MipNeRF. 
 
 Some functions in this repo were taken from:
 #####   - https://github.com/Fyusion/LLFF
