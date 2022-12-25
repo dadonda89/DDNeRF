@@ -25,7 +25,7 @@ train_params:
   depth_analysis_path: test_keypoints/fern.yml
   dist_reg_coeficient: 0.1
   set_automatic_dist_reg_coeficient: True # if true - set 'dist_reg_coeficient' to max(0.01, 1/number of samples)
-  loss_coeficients: [1, 1]
+  loss_coeficients: [1, 0.1]
   dp_coeficient: 0.1
 
 # Dataset parameters.

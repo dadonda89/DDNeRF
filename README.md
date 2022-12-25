@@ -2,6 +2,8 @@
 This is the official repo for the paper: Depth Distribution Neural Radiance Fields.
 This repo also contains torch implementation of MipNeRF. 
 
+See project page for more details - https://dadonda89.github.io/ddnerfweb/ 
+
 Some functions in this repo were taken from:
 #####   - https://github.com/Fyusion/LLFF
 #####   - https://github.com/yenchenlin/nerf-pytorch
@@ -11,7 +13,7 @@ Some functions in this repo were taken from:
     conda env create -f environment.yml
     conda activate nerf
     
-###Train model:
+### Train model:
      
      python train_model.py --config configs/XXXX.yaml
 
